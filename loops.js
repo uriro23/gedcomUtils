@@ -102,39 +102,42 @@ inds.forEach(function(ind) {
         ind.links.forEach(function(iLink) { // add spouses and natural children
            if (iLink.type === 'FAMS') {
                var spouseFam = fams[iLink.target];
-               spouseFam.links.forEach(function(sLink) {  // find spoouse
-                   if (sLink.type === 'HUSB' || sLink.type === 'WIFE') {
-                       if (sLink.target === sInd.id) {
-                           role = sLink.type; // if self link, remember its role (husband or wife)
-                       } else {
-                           sInd.spouses.push(sLink.target); // add to spouses
-                       }
+               if (spouseFam.husband) {
+                   if (spouseFam.husband === sInd.id) { // self link
+                       role = 'HUSB'
+                   } else {
+                       sInd.spouses.push(spouseFam.husband)
                    }
-               });
-               spouseFam.links.forEach(function(sLink) {
-                   if (sLink.type === 'CHIL') {  // restrict to natural childres of current spouse
-                       // console.log(role+' '+sLink.fatherRelation+' '+sLink.motherRelation);
-                       if ((role==='HUSB' && sLink.fatherRelation==='Natural') ||
-                           (role==='WIFE' && sLink.motherRelation==='Natural')) {
-                           sInd.children.push(sLink.target)
-                       }
+               }
+               if (spouseFam.wife) {
+                   if (spouseFam.wife === sInd.id) { // self link
+                       role = 'WIFE'
+                   } else {
+                       sInd.spouses.push(spouseFam.wife)
+                   }
+               }
+               spouseFam.children.forEach(function(child) {
+                   if ((role==='HUSB' && child.fatherRelation==='Natural') ||
+                       (role==='WIFE' && child.motherRelation==='Natural')) {
+                       sInd.children.push(child.target)
                    }
                })
            }
         });
-        // console.log(sInd);
         if (sInd.spouses.length || sInd.children.length) {  // spouse unknown and no children - not interesting
             simple[sInd.id] = sInd;
             sCnt++;
-            // console.log(sInd);
         }
     }
 });
 
 // now we traverse the tree: For each individual with more than one child, we follow each child descendants
-// separately, and see if we arrive at he same individual
+// separately, and see if we arrive at the same individual
 
 var loopCnt = 0;
+fams.forEach(function(couple) {
+
+});
 simple.forEach(function(commonAncestor) {
         var cc = 0;
         commonAncestor.children.forEach(function (c) {   // count only existing children

@@ -99,24 +99,27 @@ fs.readFile('./tree/rosenan.ged','utf8',function(err,data) {
          var family = {
              id: extId(item.pointer),
              infos: [],
-             links: []
+             children: []
          };
            item.tree.forEach(function(inf) {
-               if (inf.tag === 'HUSB' || inf.tag === 'WIFE' || inf.tag === 'CHIL') {
-                   var link = {
-                       type: inf.tag,
+               if (inf.tag === 'HUSB') {
+                   family.husband = extId(inf.data);
+               } else if (inf.tag === 'WIFE') {
+                   family.wife = extId(inf.data);
+               } else if (inf.tag === 'CHIL') {
+                   var child = {
                        target: extId(inf.data)
                };
                    inf.tree.forEach(function(attr) {
                       if (attr.tag === '_FREL') {
-                          link.fatherRelation = attr.data;
+                          child.fatherRelation = attr.data;
                       } else if (attr.tag === '_MREL') {
-                          link.motherRelation = attr.data;
+                          child.motherRelation = attr.data;
                       } else {
                           console.log('--- unrecognized family attribute ' + attr.tag);
                       }
                    });
-                   family.links.push(link);
+                   family.children.push(child);
                } else {
                    family.infos.push(getInfo(inf,family.id,'FAM',places));
                }
