@@ -10,18 +10,94 @@ mFam = require('./tree/families.js');
 var inds = mInd.individuals;
 var fams = mFam.families;
 
-function display (title,ind) {
-    var str = title +' id: '+ind.id;
+function times (no) {
+    return no===1 ? 'once' : no===2 ? 'twice' : String(no)+' times';
+}
+
+function ordinal (no) {
+    return String(no) + (no===1 ? 'st' : no===2 ? 'nd' : no===3 ? 'rd' : 'th');
+}
+
+function person (title,ind) {
+    var str = title;
     if (ind.name) {
-        str += (', '+ind.name);
+        str += ind.name.replace(' /','').replace('/','').replace('/',''); // remove slashes denoting last name part
+    } else {
+        str += '<no name>';
     }
+    // str += (' ('+ind.id+')');
     if (ind.birth) {
-        str += (', birth: '+ind.birth);
+        str += (', born '+ind.birth);
     }
     if (ind.death) {
-        str += (', death: '+ind.death);
+        str += (', died '+ind.death);
     }
     return str;
+}
+
+function relation (first, second) {
+    var l1 = first.pathLinks.length;
+    var l2 = second.pathLinks.length;  // l1 <= l2
+    var s2 = second.sex;
+    var r;
+    var str = first.sex==='M' ? 'his ' : 'her ';
+    if (l1===0) {
+        if (l2===0) {
+            r = s2==='M' ? 'brother' : 'sister';
+        } else if (l2===1) {
+            r = s2==='M' ? 'nephew' : 'niece';
+        } else if (l2===2) {
+            r = s2==='M' ? 'great nephew' : 'great niece';
+        } else {
+            r = ordinal(l2-1)+ ' ' + (s2==='M' ? 'great nephew' : 'great niece');
+        }
+    } else if (l1===1) {
+        if (l2===1) {
+            r = 'cousin';
+        } else {
+            r = 'cousin ' + times(l2-1) + ' removed';
+        }
+    } else if (l1===l2) {
+        r = ordinal(l1) + ' cousin';
+    } else {
+        r = ordinal(l1) + ' cousin ' + times(l2-l1) + ' removed';
+    }
+   return str+r+' ';
+}
+
+function displayLoop (graph,commonCouple,firstAncestor,secondAncestor,firstSpouse,secondSpouse) {
+    if (firstSpouse.pathLinks.length > secondSpouse.pathLinks.length) { // always show "younger" spouse second
+        displayLoop(graph,commonCouple,secondAncestor,firstAncestor,secondSpouse,firstSpouse);
+        return;
+    }
+    console.log('');
+    console.log('');
+    console.log(person('',firstSpouse)+person(' married '+relation(firstSpouse,secondSpouse),secondSpouse));
+    var isFirst = true;
+    var fPath = [...firstSpouse.pathLinks];
+    while (fPath.length) {
+        var p = graph[fPath.pop()];
+        var t = isFirst ? 'spouse' : p.sex==='M' ? 'father' : 'mother';
+        isFirst = false;
+        console.log(person(t+': ',p));
+    }
+    t = firstAncestor.sex==='M' ? 'father' : 'mother';
+    console.log(person(t+': ',firstAncestor));
+    t = secondAncestor.sex==='M' ? 'brother' : 'sister';
+    console.log(person(t+': ',secondAncestor));
+    var sPath = [...secondSpouse.pathLinks];
+    while (sPath.length) {
+        p = graph[sPath.shift()];
+        t = p.sex==='M' ? 'son' : 'daughter';
+        console.log(person(t+': ',p));
+    }
+    // console.log('');
+    // if (commonCouple.husband) {
+    //     console.log(person('Common father: ', simple[commonCouple.husband]));
+    // }
+    // if (commonCouple.wife) {
+    //     console.log(person('Common mother: ', simple[commonCouple.wife]));
+    // }
 }
 
 function traverse (current,common, head,graph,path) {
@@ -32,25 +108,7 @@ function traverse (current,common, head,graph,path) {
     current.spouses.forEach(function(s) {
         if (graph[s]) {
             if (graph[s].ancestor &&  (graph[s].ancestor !== head.id)) {
-                console.log('');
-                if (common.husband) {
-                    console.log(display('Common father', simple[common.husband]));
-                }
-                if (common.wife) {
-                    console.log(display('Common mother', simple[common.wife]));
-                }
-                console.log(display('First ancestor',head));
-                console.log(display('Second ancestor',graph[graph[s].ancestor]));
-                console.log(display('First spouse',current));
-                console.log(display('Second spouse',graph[s]));
-                console.log('First path');
-                while (current.pathLinks.length) {
-                    console.log(display('  ',graph[current.pathLinks.pop()]));
-                }
-                console.log('Second path:');
-                while (graph[s].pathLinks.length) {
-                    console.log(display('  ',graph[graph[s].pathLinks.pop()]));
-                }
+                displayLoop(graph,common,head,graph[graph[s].ancestor],current,graph[s]);
                 loopCnt++;
             }
         }
@@ -63,9 +121,9 @@ function traverse (current,common, head,graph,path) {
     current.ancestor = head.id; // set visited mark to current person's main ancestor (child of common ancestor)
     current.children.forEach(function(c) {
         if (graph[c]) { // is it a real child
-            var childPath = path;
-            childPath.push(graph[c]);
-             traverse(graph[c],common, head,graph,childPath);
+            var cPath = [...path];
+             cPath.push(graph[c]);
+            traverse(graph[c],common, head,graph,cPath);
         }
     });
     t = path.pop();
@@ -163,25 +221,7 @@ fams.forEach(function(couple) {
         }
     }
 });
-/*
-simple.forEach(function(commonAncestor) {
-        var cc = 0;
-        commonAncestor.children.forEach(function (c) {   // count only existing children
-            if (simple[c]) {    // child exists in tree, meaning he has spouse or children
-                cc++;
-            }
-        });
-        if (cc > 1) {   // common ancestor must have at least 2 children
-            simple.forEach(function (s) {  // clear all ancestor marks in tree
-                s.ancestor = undefined;
-            });
-            commonAncestor.children.forEach(function (pathHead) {
-                if (simple[pathHead]) {
-                     traverse(simple[pathHead], commonAncestor, simple[pathHead], simple, []);
-                }
-            })
-        }
-});
-*/
+
+console.log('');
 console.log(loopCnt+' loops found');
 
