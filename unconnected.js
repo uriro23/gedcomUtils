@@ -18,32 +18,20 @@ inds.forEach(function(ind) {  // initialize simplified graph
 // populate simplified graph
 fams.forEach(function(fam) {
     if(fam) {
-        children = [];
-        husband = wife = parent = undefined;
-        fam.links.forEach(function (lnk) {    // concentrate family links by type
-            if (lnk.type === 'HUSB') {
-                husband = lnk.target;
-            } else if (lnk.type === 'WIFE') {
-                wife = lnk.target;
-            } else if (lnk.type === 'CHIL') {
-                children.push(lnk.target);
-            } else {
-                console.log('unrecognized family relation ' + lnk.type)
-            }
-        });
-        if (husband && wife) {   // if both exist, point husband to wife
-            inds[husband].edges.push(wife);
-            inds[wife].edges.push(husband);
-            parent = wife;       // select representative parent to whom to link the children
-        } else if (wife) {
-            parent = wife;
-        } else if (husband) {
-            parent = husband;
+        var parent = undefined;
+        if (fam.husband && fam.wife) {   // if both exist, point husband to wife
+            inds[fam.husband].edges.push(fam.wife);
+            inds[fam.wife].edges.push(fam.husband);
+            parent = fam.wife;       // select representative parent to whom to link the children
+        } else if (fam.wife) {
+            parent = fam.wife;
+        } else if (fam.husband) {
+            parent = fam.husband;
         }
         if (parent) {
-            children.forEach(function (child) {
-                inds[parent].edges.push(child); // if any parent exists, point parent to children
-                inds[child].edges.push(parent);
+            fam.children.forEach(function (child) {
+                inds[parent].edges.push(child.target); // if any parent exists, point parent to children
+                inds[child.target].edges.push(parent);
             });
         }
     }

@@ -33,7 +33,12 @@ function traverse (current,common, head,graph,path) {
         if (graph[s]) {
             if (graph[s].ancestor &&  (graph[s].ancestor !== head.id)) {
                 console.log('');
-                console.log(display('Common ancestor',common));
+                if (common.husband) {
+                    console.log(display('Common father', simple[common.husband]));
+                }
+                if (common.wife) {
+                    console.log(display('Common mother', simple[common.wife]));
+                }
                 console.log(display('First ancestor',head));
                 console.log(display('Second ancestor',graph[graph[s].ancestor]));
                 console.log(display('First spouse',current));
@@ -136,8 +141,29 @@ inds.forEach(function(ind) {
 
 var loopCnt = 0;
 fams.forEach(function(couple) {
-
+    if (couple) {
+        cc = 0;
+        couple.children.forEach(function (c) {
+            if (simple[c.target]) {    // child exists in tree, meaning he has spouse or children
+                cc++;
+            }
+        });
+        if (cc > 1) {     // common ancestor must have at least 2 children
+            var commonAncestor = couple.husband ? simple[couple.husband] : simple[couple.wife];  // choose representative of couple
+            if (commonAncestor) {        // to avoid cases of no parents at all
+                simple.forEach(function (s) {  // clear all ancestor marks in tree
+                    s.ancestor = undefined;
+                });
+                commonAncestor.children.forEach(function (pathHead) {
+                    if (simple[pathHead]) {
+                        traverse(simple[pathHead], couple, simple[pathHead], simple, []);
+                    }
+                })
+            }
+        }
+    }
 });
+/*
 simple.forEach(function(commonAncestor) {
         var cc = 0;
         commonAncestor.children.forEach(function (c) {   // count only existing children
@@ -156,6 +182,6 @@ simple.forEach(function(commonAncestor) {
             })
         }
 });
-
+*/
 console.log(loopCnt+' loops found');
 
