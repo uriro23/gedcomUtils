@@ -7,8 +7,8 @@
 mInd = require('./tree/individuals.js');
 mFam = require('./tree/families.js');
 
-var inds = mInd.individuals;
-var fams = mFam.families;
+const inds = mInd.individuals;
+const fams = mFam.families;
 
 function times (no) {
     return no===1 ? 'once' : no===2 ? 'twice' : String(no)+' times';
@@ -19,7 +19,7 @@ function ordinal (no) {
 }
 
 function person (title,ind) {
-    var str = title;
+    let str = title;
     if (ind.name) {
         str += ind.name.replace(' /','').replace('/','').replace('/',''); // remove slashes denoting last name part
     } else {
@@ -35,12 +35,12 @@ function person (title,ind) {
     return str;
 }
 
-function relation (first, second) {
-    var l1 = first.pathLinks.length;
-    var l2 = second.pathLinks.length;  // l1 <= l2
-    var s2 = second.sex;
-    var r;
-    var str = first.sex==='M' ? 'his ' : 'her ';
+function relation (firstSpouse,firstPath,secondSpouse,secondPath) {
+    const l1 = firstPath.length;
+    const l2 = secondPath.length;  // l1 <= l2
+    const s2 = secondSpouse.sex;
+    const str = firstSpouse.sex==='M' ? 'his ' : 'her ';
+    let r;
     if (l1===0) {
         if (l2===0) {
             r = s2==='M' ? 'brother' : 'sister';
@@ -65,106 +65,85 @@ function relation (first, second) {
    return str+r+' ';
 }
 
-function displayLoop (graph,commonCouple,firstAncestor,secondAncestor,firstSpouse,secondSpouse) {
+function saveLoop (graph,commonCouple,firstAncestor,secondAncestor,firstSpouse,secondSpouse) {
     if (firstSpouse.pathLinks.length > secondSpouse.pathLinks.length) { // always show "younger" spouse second
-        displayLoop(graph,commonCouple,secondAncestor,firstAncestor,secondSpouse,firstSpouse);
+        saveLoop (graph, commonCouple, secondAncestor, firstAncestor, secondSpouse, firstSpouse);
         return;
     }
-    console.log('');
-    console.log('');
-    console.log(person('',firstSpouse)+person(' married '+relation(firstSpouse,secondSpouse),secondSpouse));
-    var isFirst = true;
-    var fPath = [...firstSpouse.pathLinks];
-    while (fPath.length) {
-        var p = graph[fPath.pop()];
-        var t = isFirst ? 'spouse' : p.sex==='M' ? 'father' : 'mother';
-        isFirst = false;
-        console.log(person(t+': ',p));
-    }
-    t = firstAncestor.sex==='M' ? 'father' : 'mother';
-    console.log(person(t+': ',firstAncestor));
-    t = secondAncestor.sex==='M' ? 'brother' : 'sister';
-    console.log(person(t+': ',secondAncestor));
-    var sPath = [...secondSpouse.pathLinks];
-    while (sPath.length) {
-        p = graph[sPath.shift()];
-        t = p.sex==='M' ? 'son' : 'daughter';
-        console.log(person(t+': ',p));
-    }
-    // console.log('');
-    // if (commonCouple.husband) {
-    //     console.log(person('Common father: ', simple[commonCouple.husband]));
-    // }
-    // if (commonCouple.wife) {
-    //     console.log(person('Common mother: ', simple[commonCouple.wife]));
-    // }
+    loops.push({
+        commonCouple: commonCouple,
+        firstAncestor: firstAncestor,
+        secondAncestor: secondAncestor,
+        firstSpouse: firstSpouse,
+        secondSpouse: secondSpouse,
+        firstPath: [...firstSpouse.pathLinks],
+        secondPath: [...secondSpouse.pathLinks]
+    });
 }
+
 
 function traverse (current,common, head,graph,path) {
     // find out if current person and any of his/her spouses share the common ancestor
-    current.pathLinks = path.map(function(p) {
-        return p.id;
-    });
-    current.spouses.forEach(function(s) {
+    current.pathLinks = path.map(p => p.id);
+    current.spouses.forEach(s => {
         if (graph[s]) {
             if (graph[s].ancestor &&  (graph[s].ancestor !== head.id)) {
-                displayLoop(graph,common,head,graph[graph[s].ancestor],current,graph[s]);
+                saveLoop(graph,common,head,graph[graph[s].ancestor],current,graph[s]);
                 loopCnt++;
             }
         }
     });
-    var t;
     if (current.ancestor){
-        t = path.pop();
+        path.pop();
         return; // already been here, abort this path
     }
     current.ancestor = head.id; // set visited mark to current person's main ancestor (child of common ancestor)
-    current.children.forEach(function(c) {
+    current.children.forEach(c => {
         if (graph[c]) { // is it a real child
-            var cPath = [...path];
+            let cPath = [...path];
              cPath.push(graph[c]);
             traverse(graph[c],common, head,graph,cPath);
         }
     });
-    t = path.pop();
+    path.pop();
 }
 
 // first we build a simplified graph of all individuals containing arches to their spouses  and to their natural children
 
-var simple = [];
-var sCnt = 0;
+let simple = [];
+let sCnt = 0;
 
-inds.forEach(function(ind) {
+inds.forEach(ind => {
     if (ind) {  // skip null entries
-        var sInd = {
+        let sInd = {
             id: ind.id,
             spouses: [],
             children: []
         };
-        ind.infos.forEach(function(inf){
+        ind.infos.forEach(inf => {
             if (inf.tag === 'NAME') {
                 sInd.name = inf.desc;
             }
         });
-        ind.infos.forEach(function(inf){
+        ind.infos.forEach(inf => {
             if (inf.tag === 'SEX') {
                 sInd.sex = inf.desc;
             }
         });
-        ind.infos.forEach(function(inf){
+        ind.infos.forEach(inf => {
             if (inf.tag === 'BIRT') {
                 sInd.birth = inf.date;
             }
         });
-        ind.infos.forEach(function(inf){
+        ind.infos.forEach(inf => {
             if (inf.tag === 'DEAT') {
                 sInd.death = inf.date;
             }
         });
-        var role;
-        ind.links.forEach(function(iLink) { // add spouses and natural children
+        let role;
+        ind.links.forEach(iLink => { // add spouses and natural children
            if (iLink.type === 'FAMS') {
-               var spouseFam = fams[iLink.target];
+               let spouseFam = fams[iLink.target];
                if (spouseFam.husband) {
                    if (spouseFam.husband === sInd.id) { // self link
                        role = 'HUSB'
@@ -179,7 +158,7 @@ inds.forEach(function(ind) {
                        sInd.spouses.push(spouseFam.wife)
                    }
                }
-               spouseFam.children.forEach(function(child) {
+               spouseFam.children.forEach(child => {
                    if ((role==='HUSB' && child.fatherRelation==='Natural') ||
                        (role==='WIFE' && child.motherRelation==='Natural')) {
                        sInd.children.push(child.target)
@@ -197,28 +176,66 @@ inds.forEach(function(ind) {
 // now we traverse the tree: For each individual with more than one child, we follow each child descendants
 // separately, and see if we arrive at the same individual
 
-var loopCnt = 0;
-fams.forEach(function(couple) {
+let loops = [];
+let loopCnt = 0;
+fams.forEach(couple => {
     if (couple) {
-        cc = 0;
-        couple.children.forEach(function (c) {
+        let cc = 0;
+        couple.children.forEach(c => {
             if (simple[c.target]) {    // child exists in tree, meaning he has spouse or children
                 cc++;
             }
         });
         if (cc > 1) {     // common ancestor must have at least 2 children
-            var commonAncestor = couple.husband ? simple[couple.husband] : simple[couple.wife];  // choose representative of couple
+            let commonAncestor = couple.husband ? simple[couple.husband] : simple[couple.wife];  // choose representative of couple
             if (commonAncestor) {        // to avoid cases of no parents at all
-                simple.forEach(function (s) {  // clear all ancestor marks in tree
+                simple.forEach(s => {  // clear all ancestor marks in tree
                     s.ancestor = undefined;
                 });
-                commonAncestor.children.forEach(function (pathHead) {
+                commonAncestor.children.forEach(pathHead => {
                     if (simple[pathHead]) {
                         traverse(simple[pathHead], couple, simple[pathHead], simple, []);
                     }
                 })
             }
         }
+    }
+});
+
+loops.sort((a,b) => {
+   if ((a.firstPath.length+a.secondPath.length) < (b.firstPath.length+b.secondPath.length) ) {
+       return -1;
+   } else if ((a.firstPath.length+a.secondPath.length) > (b.firstPath.length+b.secondPath.length) ) {
+       return 1;
+   } else {
+       return a.firstPath.length - b.firstPath.length
+   }
+});
+
+loops.forEach(lp => {
+    let t;
+    let p;
+    console.log('');
+    console.log('');
+    console.log(person('',lp.firstSpouse)+
+                person(' married '+relation(lp.firstSpouse,lp.firstPath,lp.secondSpouse,lp.secondPath),lp.secondSpouse));
+    let isFirst = true;
+    // let fPath = [...firstSpouse.pathLinks];
+    while (lp.firstPath.length) {
+        p = simple[lp.firstPath.pop()];
+        t = isFirst ? 'spouse' : p.sex==='M' ? 'father' : 'mother';
+        isFirst = false;
+        console.log(person(t+': ',p));
+    }
+    t = lp.firstAncestor.sex==='M' ? 'father' : 'mother';
+    console.log(person(t+': ',lp.firstAncestor));
+    t = lp.secondAncestor.sex==='M' ? 'brother' : 'sister';
+    console.log(person(t+': ',lp.secondAncestor));
+    // let sPath = [...secondSpouse.pathLinks];
+    while (lp.secondPath.length) {
+        p = simple[lp.secondPath.shift()];
+        t = p.sex==='M' ? 'son' : 'daughter';
+        console.log(person(t+': ',p));
     }
 });
 
