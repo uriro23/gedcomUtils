@@ -21,7 +21,7 @@ function ordinal (no) {
 function person (title,ind) {
     let str = title;
     if (ind.name) {
-        str += ind.name.replace(' /','').replace('/','').replace('/',''); // remove slashes denoting last name part
+        str += ind.name.replace('/','').replace('/',''); // remove slashes denoting last name part
     } else {
         str += '<no name>';
     }

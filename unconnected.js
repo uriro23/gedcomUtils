@@ -3,12 +3,12 @@
 mInd = require('./tree/individuals.js');
 mFam = require('./tree/families.js');
 
-var inds = mInd.individuals;
-var fams = mFam.families;
+const inds = mInd.individuals;
+const fams = mFam.families;
 
-var children, husband, wife, parent;
+let children, husband, wife, parent;
 
-inds.forEach(function(ind) {  // initialize simplified graph
+inds.forEach(ind => {  // initialize simplified graph
     if (ind) {
         ind.edges = [];
         ind.isConnected = false;
@@ -16,9 +16,9 @@ inds.forEach(function(ind) {  // initialize simplified graph
 });
 
 // populate simplified graph
-fams.forEach(function(fam) {
+fams.forEach(fam => {
     if(fam) {
-        var parent = undefined;
+        let parent = undefined;
         if (fam.husband && fam.wife) {   // if both exist, point husband to wife
             inds[fam.husband].edges.push(fam.wife);
             inds[fam.wife].edges.push(fam.husband);
@@ -29,7 +29,7 @@ fams.forEach(function(fam) {
             parent = fam.husband;
         }
         if (parent) {
-            fam.children.forEach(function (child) {
+            fam.children.forEach(child  => {
                 inds[parent].edges.push(child.target); // if any parent exists, point parent to children
                 inds[child.target].edges.push(parent);
             });
@@ -38,8 +38,8 @@ fams.forEach(function(fam) {
 });
 
 // traverse graph starting from home person, marking all visited vertices
-var stack = [];
-var ii = 3089;
+let stack = [];
+let ii = 3089;
 while (ii) {
     // console.log('visiting '+ii);
     inds[ii].isConnected = true;
@@ -53,12 +53,12 @@ while (ii) {
 }
 
 // list names ofall unconnected persons
-var name;
-var connCnt = 0;
-inds.forEach(function(ind) {
+let name;
+let connCnt = 0;
+inds.forEach(ind => {
     if (ind) {
         if (!ind.isConnected) {
-            ind.infos.forEach(function (inf) {
+            ind.infos.forEach(inf => {
                 if (inf.tag === 'NAME') {
                     name = inf.desc;
                 }

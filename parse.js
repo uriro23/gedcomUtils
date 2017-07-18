@@ -6,13 +6,13 @@ function extId(str) {
 }
 
 function getInfo(inf,hostId,hostType,places) {
-    var info = {
+    let info = {
         tag: inf.tag
     };
     if (inf.data) {
         info.desc = inf.data;
     }
-    inf.tree.forEach(function (attr) {
+    inf.tree.forEach(attr => {
         if (attr.tag === 'CONC') {
             info.desc += attr.data;
         } else if (attr.tag === 'DATE') {
@@ -23,11 +23,11 @@ function getInfo(inf,hostId,hostType,places) {
             info.place = {
                 address: attr.data
             };
-            attr.tree.forEach(function (subAttr) {
+            attr.tree.forEach(subAttr => {
                 if (subAttr.tab === 'CONC') {
                     info.place.address += subAttr.data;
                 } else if (subAttr.tag === 'MAP') {
-                    subAttr.tree.forEach(function (mapAttr) {
+                    subAttr.tree.forEach(mapAttr => {
                         if (mapAttr.tag === 'LATI') {
                             info.place.latitude = mapAttr.data;
                         } else if (mapAttr.tag === 'LONG') {
@@ -43,8 +43,8 @@ function getInfo(inf,hostId,hostType,places) {
 }
 
 function getPlaceLink(place,hostId,hostType,places) {
-        var res;
-        var tPlace = places.filter(function(plc,pli) {
+        let res;
+        let tPlace = places.filter((plc,pli) => {
            if (place.address === plc.address) {
                res = pli;
                return true;
@@ -64,27 +64,27 @@ function getPlaceLink(place,hostId,hostType,places) {
         return res;
 }
 
-fs.readFile('./tree/rosenan.ged','utf8',function(err,data) {
+fs.readFile('./tree/rosenan.ged','utf8',(err,data) => {
    if(err) {
        return console.log(err);
    }
-   var tree = pg.parse(data);
-   var indiCount = 0;
-   var individuals = [];
-   var famCount = 0;
-   var families = [];
-   var places = [];
-    tree.forEach(function(item) {
+   let tree = pg.parse(data);
+   let indiCount = 0;
+   let individuals = [];
+   let famCount = 0;
+   let families = [];
+   let places = [];
+    tree.forEach(item => {
        if (item.tag === 'INDI') {
            indiCount++;
-           var indi = {
+           let indi = {
                id: extId(item.pointer),
                infos: [],
                links: []
            };
-           item.tree.forEach(function(inf) {
+           item.tree.forEach(inf => {
                if (inf.tag === 'FAMS' || inf.tag === 'FAMC') {
-                  var link = {
+                  let link = {
                       type: inf.tag,
                       target: extId(inf.data)
                   };
@@ -96,21 +96,21 @@ fs.readFile('./tree/rosenan.ged','utf8',function(err,data) {
            individuals[indi.id] = indi;
        } else if (item.tag === 'FAM') {
            famCount++;
-         var family = {
+         let family = {
              id: extId(item.pointer),
              infos: [],
              children: []
          };
-           item.tree.forEach(function(inf) {
+           item.tree.forEach(inf => {
                if (inf.tag === 'HUSB') {
                    family.husband = extId(inf.data);
                } else if (inf.tag === 'WIFE') {
                    family.wife = extId(inf.data);
                } else if (inf.tag === 'CHIL') {
-                   var child = {
+                   let child = {
                        target: extId(inf.data)
                };
-                   inf.tree.forEach(function(attr) {
+                   inf.tree.forEach(attr => {
                       if (attr.tag === '_FREL') {
                           child.fatherRelation = attr.data;
                       } else if (attr.tag === '_MREL') {
@@ -127,23 +127,23 @@ fs.readFile('./tree/rosenan.ged','utf8',function(err,data) {
            families[family.id] = family;
        }
    });
-    var str = 'exports.individuals = ' + JSON.stringify(individuals) + ';';
-    fs.writeFile('./tree/individuals.js',str,'utf8',function(err) {
+    let str = 'exports.individuals = ' + JSON.stringify(individuals) + ';';
+    fs.writeFile('./tree/individuals.js',str,'utf8',err => {
        if (err) {
            console.log(err);
        }
        str = 'exports.families = ' + JSON.stringify(families) + ';';
-       fs.writeFile('./tree/families.js',str,'utf8',function(err) {
+       fs.writeFile('./tree/families.js',str,'utf8',err => {
            if (err) {
                console.log(err);
            }
            str = 'exports.places = ' + JSON.stringify(places) + ';';
-           fs.writeFile('./tree/places.js', str, 'utf8', function (err) {
+           fs.writeFile('./tree/places.js', str, 'utf8',err => {
                if (err) {
                    console.log(err);
                }
                str = JSON.stringify(tree);
-               fs.writeFile('./tree/Rosenan.json',str,'utf8',function(err) {
+               fs.writeFile('./tree/Rosenan.json',str,'utf8',err => {
                    if (err) {
                        console.log(err);
                    }
